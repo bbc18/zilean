@@ -6,12 +6,11 @@ public class DatabaseConfiguration
 
   public DatabaseConfiguration()
   {
-    var password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
-    if (string.IsNullOrWhiteSpace(password))
-    {
-      throw new InvalidOperationException("Environment variable POSTGRES_PASSWORD is not set.");
-    }
+    var password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "zilean";
+    var host = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "zilean-postgres";
+    var user = Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "zilean";
+    var db = Environment.GetEnvironmentVariable("POSTGRES_DB") ?? "zilean";
 
-    ConnectionString = $"Host=postgres;Database=zilean;Username=postgres;Password={password};Include Error Detail=true;Timeout=30;CommandTimeout=3600;";
+    ConnectionString = $"Host={host};Database={db};Username={user};Password={password};Include Error Detail=true;Timeout=30;CommandTimeout=3600;";
   }
 }
