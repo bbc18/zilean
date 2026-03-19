@@ -10,8 +10,12 @@ public class PttPythonTests : IDisposable
     public PttPythonTests(ITestOutputHelper output)
     {
         _output = output;
-        Environment.SetEnvironmentVariable("ZILEAN_PYTHON_PYLIB",
-            "/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib");
+
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+        {
+            Environment.SetEnvironmentVariable("ZILEAN_PYTHON_PYLIB",
+                "/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib");
+        }
 
         var loggerParse = Substitute.For<ILogger<ParseTorrentNameService>>();
         _parseTorrentNameService = new ParseTorrentNameService(loggerParse);

@@ -3,10 +3,15 @@
 @using Syncfusion.Blazor
 @using Syncfusion.Blazor.Inputs
 @using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Navigations
 @using SelectionMode = Syncfusion.Blazor.Grids.SelectionMode
 @using Syncfusion.Blazor.Buttons
 
 @rendermode InteractiveServer
+
+<p class="text-muted" style="font-size: 0.9em;">
+    <small><i>Search supports regular text or regex matching by wrapping your pattern with forward slashes (e.g. <code>/pattern/i</code> for case-insensitive search).</i></small>
+</p>
 
 <SfGrid @ref="_torrentsGrid" TValue="DashboardTorrentDetails" AllowSorting="false" AllowFiltering="true" AllowResizing="true" AllowPaging="true" Toolbar="@_toolbarOptions" EnableHover="true" EnableStickyHeader="true" GridLines="GridLine.Both" EnableAltRow="true" AdaptiveUIMode="AdaptiveMode.Both">
     <SfDataManager AdaptorInstance="typeof(DashboardDataAdapter)" Adaptor="Adaptors.CustomAdaptor"></SfDataManager>
