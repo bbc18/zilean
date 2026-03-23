@@ -17,7 +17,39 @@ public class DashboardDataAdapter(IServiceProvider serviceProvider, ParseTorrent
 
             if (dataManagerRequest.Search is { Count: > 0 })
             {
-                dataSource = DataOperations.PerformSearching(dataSource, dataManagerRequest.Search);
+                var searchTerm = dataManagerRequest.Search[0].Key;
+                if (!string.IsNullOrWhiteSpace(searchTerm) && searchTerm.StartsWith("/") && searchTerm.LastIndexOf('/') > 0)
+                {
+                    int lastSlash = searchTerm.LastIndexOf('/');
+                    string pattern = searchTerm.Substring(1, lastSlash - 1);
+                    string options = searchTerm.Substring(lastSlash + 1);
+
+                    var regexOptions = System.Text.RegularExpressions.RegexOptions.None;
+                    if (options.Contains("i", StringComparison.OrdinalIgnoreCase))
+                    {
+                        regexOptions |= System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                    }
+
+                    try
+                    {
+                        // Validate regex before applying to query
+                        _ = new System.Text.RegularExpressions.Regex(pattern, regexOptions);
+
+                        dataSource = dataSource.Where(x =>
+                            (x.RawTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.RawTitle, pattern, regexOptions)) ||
+                            (x.ParsedTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.ParsedTitle, pattern, regexOptions))
+                        );
+                    }
+                    catch (ArgumentException)
+                    {
+                        // If regex is invalid, fallback to normal search
+                        dataSource = DataOperations.PerformSearching(dataSource, dataManagerRequest.Search);
+                    }
+                }
+                else
+                {
+                    dataSource = DataOperations.PerformSearching(dataSource, dataManagerRequest.Search);
+                }
             }
 
             if (dataManagerRequest.Where is { Count: > 0 })
