@@ -3,7 +3,7 @@
 on: workflow_dispatch
 
 env:
-  IMAGE_NAME: itsayushsehrawat/zilean
+  IMAGE_NAME: bbc18/zilean
 
 jobs:
   execution:
