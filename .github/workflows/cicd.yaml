@@ -1,4 +1,4 @@
-﻿name: CI / CD for Zilean
+name: CI / CD for Zilean
 
 on: workflow_dispatch
 
@@ -55,3 +55,16 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha,scope=${{ github.workflow }}
           cache-to: type=gha,mode=max,scope=${{ github.workflow }}
+
+      - name: Delete non-latest images from Docker Hub
+        run: |
+          PAYLOAD=$(jq -n --arg username "${{ vars.DOCKERHUB_USERNAME }}" --arg password "${{ secrets.DOCKERHUB_TOKEN }}" '{username: $username, password: $password}')
+          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" https://hub.docker.com/v2/users/login/ | jq -r .token)
+          TAGS=$(curl -s -H "Authorization: JWT ${TOKEN}" "https://hub.docker.com/v2/repositories/${{ env.IMAGE_NAME }}/tags/?page_size=100" | jq -r '.results[]?.name')
+          for TAG in $TAGS; do
+            if [ "$TAG" != "latest" ] && [ -n "$TAG" ]; then
+              echo "Deleting tag: $TAG"
+              curl -s -X DELETE -H "Authorization: JWT ${TOKEN}" "https://hub.docker.com/v2/repositories/${{ env.IMAGE_NAME }}/tags/$TAG/"
+            fi
+          done
+
