@@ -1,4 +1,4 @@
-﻿namespace Zilean.ApiService.Features.Dashboard.Components.Pages.Dashboard;
+namespace Zilean.ApiService.Features.Dashboard.Components.Pages.Dashboard;
 
 public class DashboardDataAdapter(IServiceProvider serviceProvider, ParseTorrentNameService parseTorrentNameService, ILogger<DashboardDataAdapter> logger) : DataAdaptor
 {
@@ -35,10 +35,20 @@ public class DashboardDataAdapter(IServiceProvider serviceProvider, ParseTorrent
                         // Validate regex before applying to query
                         _ = new System.Text.RegularExpressions.Regex(pattern, regexOptions);
 
-                        dataSource = dataSource.Where(x =>
-                            (x.RawTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.RawTitle, pattern, regexOptions)) ||
-                            (x.ParsedTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.ParsedTitle, pattern, regexOptions))
-                        );
+                        if (options.Contains("i", StringComparison.OrdinalIgnoreCase))
+                        {
+                            dataSource = dataSource.Where(x =>
+                                (x.RawTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.RawTitle, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase)) ||
+                                (x.ParsedTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.ParsedTitle, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                            );
+                        }
+                        else
+                        {
+                            dataSource = dataSource.Where(x =>
+                                (x.RawTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.RawTitle, pattern, System.Text.RegularExpressions.RegexOptions.None)) ||
+                                (x.ParsedTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.ParsedTitle, pattern, System.Text.RegularExpressions.RegexOptions.None))
+                            );
+                        }
                     }
                     catch (ArgumentException)
                     {
