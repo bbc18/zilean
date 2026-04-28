@@ -119,7 +119,8 @@
                     if (string.IsNullOrEmpty(dn)) dn = $"{t.ParsedTitle}({t.Year})";
                     if (!string.IsNullOrEmpty(t.ImdbId)) dn += $" [imdb-{t.ImdbId}]";
                     dn = Uri.EscapeDataString(dn ?? string.Empty);
-                    return $"magnet:?xt=urn:btih:{t.InfoHash}&dn={dn}&x.[source]=[zilean]";
+                    var xl = !string.IsNullOrEmpty(t.Size) ? $"&xl={t.Size}" : string.Empty;
+                    return $"magnet:?xt=urn:btih:{t.InfoHash}&dn={dn}{xl}&x.[source]=[zilean]";
                 }).ToList();
 
                 await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", string.Join("\n", magnetUris));
