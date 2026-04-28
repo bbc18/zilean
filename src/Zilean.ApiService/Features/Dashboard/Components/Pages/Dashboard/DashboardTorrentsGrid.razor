@@ -6,6 +6,7 @@
 @using Syncfusion.Blazor.Navigations
 @using SelectionMode = Syncfusion.Blazor.Grids.SelectionMode
 @using Syncfusion.Blazor.Buttons
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
 
 @rendermode InteractiveServer
 
@@ -14,6 +15,7 @@
 </p>
 
 <SfGrid @ref="_torrentsGrid" TValue="DashboardTorrentDetails" AllowSorting="false" AllowFiltering="true" AllowResizing="true" AllowPaging="true" Toolbar="@_toolbarOptions" EnableHover="true" EnableStickyHeader="true" GridLines="GridLine.Both" EnableAltRow="true" AdaptiveUIMode="AdaptiveMode.Both">
+    <GridEvents OnToolbarClick="ToolbarClickHandler" TValue="DashboardTorrentDetails"></GridEvents>
     <SfDataManager AdaptorInstance="typeof(DashboardDataAdapter)" Adaptor="Adaptors.CustomAdaptor"></SfDataManager>
     <GridSelectionSettings Mode="SelectionMode.Row" CheckboxOnly="true" CheckboxMode="CheckboxSelectionType.Default"></GridSelectionSettings>
     <GridEditSettings AllowEditing="true" AllowDeleting="true" AllowAdding="true" Mode="@EditMode.Dialog" AllowEditOnDblClick="true" AllowNextRowEdit="false" ShowAddNewRow="false" ShowConfirmDialog="true" ShowDeleteConfirmDialog="true" Dialog="@_dialogSettings">
@@ -103,5 +105,25 @@
     private SfGrid<DashboardTorrentDetails> _torrentsGrid = default!;
     private readonly Array _pageSizes = new[] { 500, 100, 50, 25 };
     private readonly int _initialPageSize = 25;
-    private readonly List<string> _toolbarOptions = ["Add", "Edit", "Delete", "Search"];
+    private readonly List<Object> _toolbarOptions = new List<Object>() { "Add", "Edit", "Delete", new ItemModel() { Text = "Magnets", TooltipText = "Copy the magnets to the clipboard", Id = "Magnets", PrefixIcon = "magnet-icon" }, "Search" };
+
+    public async Task ToolbarClickHandler(ClickEventArgs args)
+    {
+        if (args.Item.Id == "Magnets")
+        {
+            var selectedRecords = await _torrentsGrid.GetSelectedRecordsAsync();
+            if (selectedRecords != null && selectedRecords.Count > 0)
+            {
+                var magnetUris = selectedRecords.Select(t => {
+                    var dn = t.RawTitle;
+                    if (string.IsNullOrEmpty(dn)) dn = $"{t.ParsedTitle}({t.Year})";
+                    if (!string.IsNullOrEmpty(t.ImdbId)) dn += $" [imdb-{t.ImdbId}]";
+                    dn = Uri.EscapeDataString(dn ?? string.Empty);
+                    return $"magnet:?xt=urn:btih:{t.InfoHash}&dn={dn}&x.[source]=[zilean]";
+                }).ToList();
+
+                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", string.Join("\n", magnetUris));
+            }
+        }
+    }
 }
