@@ -50,3 +50,13 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
   border-color: #929292;
 }
+
+.magnet-icon {
+    background-image: url('/images/magnet.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+}
