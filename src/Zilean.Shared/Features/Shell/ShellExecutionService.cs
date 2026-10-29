@@ -34,7 +34,8 @@ public class ShellExecutionService(ILogger<ShellExecutionService> logger) : IShe
                 .WithValidation(CommandResultValidation.None)
                 .WithStandardOutputPipe(PipeTarget.ToStream(stdOut))
                 .WithStandardErrorPipe(PipeTarget.ToStream(stdErr))
-                .ExecuteAsync(options.CancellationToken);
+                .ExecuteAsync(options.CancellationToken)
+                .ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {
