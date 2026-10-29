@@ -24,8 +24,11 @@ public class ShellExecutionService(ILogger<ShellExecutionService> logger) : IShe
                 ? Directory.GetCurrentDirectory()
                 : options.WorkingDirectory;
 
-            await using var stdOut = Console.OpenStandardOutput();
-            await using var stdErr = Console.OpenStandardError();
+            var stdOut = Console.OpenStandardOutput();
+            var stdErr = Console.OpenStandardError();
+
+            await using var _1 = stdOut.ConfigureAwait(false);
+            await using var _2 = stdErr.ConfigureAwait(false);
 
             await Cli.Wrap(options.Command)
                 .WithWorkingDirectory(executionDirectory)
@@ -34,7 +37,8 @@ public class ShellExecutionService(ILogger<ShellExecutionService> logger) : IShe
                 .WithValidation(CommandResultValidation.None)
                 .WithStandardOutputPipe(PipeTarget.ToStream(stdOut))
                 .WithStandardErrorPipe(PipeTarget.ToStream(stdErr))
-                .ExecuteAsync(options.CancellationToken);
+                .ExecuteAsync(options.CancellationToken)
+                .ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {
