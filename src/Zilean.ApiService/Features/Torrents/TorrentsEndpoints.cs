@@ -62,6 +62,7 @@ public static class TorrentsEndpoints
 
             var items = await dbContext
                 .Torrents
+                .AsNoTracking()
                 .Where(record => hashSet.Contains(record.InfoHash))
                 .Select(record => new CachedItem
                 {
