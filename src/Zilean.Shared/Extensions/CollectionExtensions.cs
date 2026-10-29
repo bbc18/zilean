@@ -20,7 +20,7 @@ public static class CollectionExtensions
 
         var batch = new List<T>(size);
 
-        await foreach (var item in source.WithCancellation(cancellationToken))
+        await foreach (var item in source.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             batch.Add(item);
             if (batch.Count != size)
