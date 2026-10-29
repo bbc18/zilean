@@ -97,7 +97,7 @@ public class ParseTorrentNameService
 
     public async Task StopPythonEngine()
     {
-        await _initAsync;
+        await _initAsync.ConfigureAwait(false);
         _sys.Dispose();
 
         PythonEngine.Shutdown();
@@ -107,7 +107,7 @@ public class ParseTorrentNameService
 
     public async Task<List<TorrentInfo>> ParseAndPopulateAsync(List<ExtractedDmmEntry> torrents, int batchSize = 5000)
     {
-        await _initAsync;
+        await _initAsync.ConfigureAwait(false);
 
         PyModule? scope = null;
         dynamic runProcessBatches = null;
@@ -187,7 +187,7 @@ public class ParseTorrentNameService
 
     public async Task<TorrentInfo> ParseAndPopulateTorrentInfoAsync(TorrentInfo torrent)
     {
-        await _initAsync;
+        await _initAsync.ConfigureAwait(false);
 
         PyModule? scope = null;
         dynamic runSingle = null;
