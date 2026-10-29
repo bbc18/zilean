@@ -72,7 +72,8 @@ public static class TorrentsEndpoints
                 })
                 .ToListAsync();
 
-            foreach (var hash in hashSet.Where(hash => items.All(x => !x.InfoHash.Equals(hash, StringComparison.OrdinalIgnoreCase))))
+            var foundHashes = items.Select(x => x.InfoHash).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var hash in hashSet.Where(hash => !foundHashes.Contains(hash)))
             {
                 items.Add(new CachedItem
                 {
