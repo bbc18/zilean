@@ -6,7 +6,6 @@ public static class TorrentsEndpoints
     private const string Scrape = "/all";
     private const string CheckCached = "/checkcached";
     private const string NoHashesProvidedError = "No hashes provided";
-    private const string TooManyHashesError = "Too many hashes provided. The limit is {0}.";
 
     public static WebApplication MapTorrentsEndpoints(this WebApplication app, ZileanConfiguration configuration)
     {
@@ -56,7 +55,7 @@ public static class TorrentsEndpoints
             if (hashes.Length >= configuration.Torrents.MaxHashesToCheck)
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                return Results.BadRequest(new ErrorResponse(string.Format(TooManyHashesError, configuration.Torrents.MaxHashesToCheck)));
+                return Results.BadRequest(new ErrorResponse($"Too many hashes provided. The limit is {configuration.Torrents.MaxHashesToCheck}."));
             }
 
             var hashSet = new HashSet<string>(hashes);
