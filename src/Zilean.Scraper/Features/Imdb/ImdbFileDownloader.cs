@@ -32,7 +32,7 @@ public class ImdbFileDownloader(ILogger<ImdbFileDownloader> logger)
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         await using var gzipStream = new GZipStream(stream, CompressionMode.Decompress);
-        await using var fileStream = File.Create(_dataFilePath);
+        await using var fileStream = new FileStream(_dataFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous);
 
         await gzipStream.CopyToAsync(fileStream, cancellationToken);
 
