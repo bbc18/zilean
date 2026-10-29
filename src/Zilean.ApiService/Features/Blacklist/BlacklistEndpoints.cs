@@ -93,11 +93,12 @@ public static class BlacklistEndpoints
 
             dbContext.BlacklistedItems.Add(blacklistedItem);
 
-            var torrentInfo = await dbContext.Torrents.FirstOrDefaultAsync(x => x.InfoHash == request.info_hash);
+            var deletedCount = await dbContext.Torrents
+                .Where(x => x.InfoHash == request.info_hash)
+                .ExecuteDeleteAsync();
 
-            if (torrentInfo != null)
+            if (deletedCount > 0)
             {
-                dbContext.Torrents.Remove(torrentInfo);
                 logger.LogInformation("Removed torrent {InfoHash} from database", request.info_hash);
             }
 
