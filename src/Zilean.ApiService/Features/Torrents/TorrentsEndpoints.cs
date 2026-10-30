@@ -74,7 +74,6 @@ public static class TorrentsEndpoints
 
             var foundHashes = items.Select(x => x.InfoHash).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-
             foreach (var hash in hashSet.Where(hash => !foundHashes.Contains(hash)))
             {
                 items.Add(new CachedItem
