@@ -19,7 +19,7 @@ public static class TorznabRequestExtensions
             };
             if (request.t != null)
             {
-                query.QueryType = request.t;
+                query.QueryType = request.t.ToLowerInvariant();
             }
 
             if (!string.IsNullOrWhiteSpace(request.season))

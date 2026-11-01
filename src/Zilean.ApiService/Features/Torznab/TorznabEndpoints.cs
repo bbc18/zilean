@@ -137,22 +137,37 @@ public static class TorznabEndpoints
         return results.ToList();
     }
 
-    private static string? GetFromTorznabCategories(int[] queryCategories, string? queryQueryType) =>
-        (!queryQueryType.IsNullOrWhiteSpace() && queryQueryType!.Equals("movie", StringComparison.OrdinalIgnoreCase)) ? "movie" :
-        (!queryQueryType.IsNullOrWhiteSpace() && queryQueryType!.Equals("tvsearch", StringComparison.OrdinalIgnoreCase)) ? "tvSeries" :
-        (!queryQueryType.IsNullOrWhiteSpace() && queryQueryType!.Equals("xxx", StringComparison.OrdinalIgnoreCase)) ? "xxx" :
-        queryCategories.Length == 0
-            ? null
-            : queryCategories.Contains(TorznabCategoryTypes.Movies.Id) ||
-              TorznabCategoryTypes.Movies.SubCategories.Any(c => queryCategories.Contains(c.Id))
-                ? "movie"
-                : queryCategories.Contains(TorznabCategoryTypes.TV.Id) ||
-                  TorznabCategoryTypes.TV.SubCategories.Any(c => queryCategories.Contains(c.Id))
-                    ? "tvSeries"
-                    : queryCategories.Contains(TorznabCategoryTypes.XXX.Id) ||
-                      TorznabCategoryTypes.XXX.SubCategories.Any(c => queryCategories.Contains(c.Id))
-                        ? "xxx"
-                        : null;
+    private static string? GetFromTorznabCategories(int[] queryCategories, string? queryQueryType)
+    {
+        if (string.Equals(queryQueryType, "movie", StringComparison.OrdinalIgnoreCase))
+            return "movie";
+        if (string.Equals(queryQueryType, "tvsearch", StringComparison.OrdinalIgnoreCase))
+            return "tvSeries";
+        if (string.Equals(queryQueryType, "xxx", StringComparison.OrdinalIgnoreCase))
+            return "xxx";
+
+        if (queryCategories == null || queryCategories.Length == 0)
+            return null;
+
+        bool hasMovie = queryCategories.Contains(TorznabCategoryTypes.Movies.Id) ||
+                        TorznabCategoryTypes.Movies.SubCategories.Any(c => queryCategories.Contains(c.Id));
+
+        bool hasTv = queryCategories.Contains(TorznabCategoryTypes.TV.Id) ||
+                     TorznabCategoryTypes.TV.SubCategories.Any(c => queryCategories.Contains(c.Id));
+
+        bool hasXxx = queryCategories.Contains(TorznabCategoryTypes.XXX.Id) ||
+                      TorznabCategoryTypes.XXX.SubCategories.Any(c => queryCategories.Contains(c.Id));
+
+        int matchedCount = (hasMovie ? 1 : 0) + (hasTv ? 1 : 0) + (hasXxx ? 1 : 0);
+        if (matchedCount != 1)
+            return null;
+
+        if (hasMovie) return "movie";
+        if (hasTv) return "tvSeries";
+        if (hasXxx) return "xxx";
+
+        return null;
+    }
 
     private static ICollection<int> GetCategory(string dbCategory) =>
         dbCategory switch
