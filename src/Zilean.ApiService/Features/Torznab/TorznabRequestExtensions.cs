@@ -1,4 +1,4 @@
-﻿using Serilog;
+using Serilog;
 using ILogger = Serilog.ILogger;
 
 namespace Zilean.ApiService.Features.Torznab;
@@ -49,26 +49,21 @@ public static class TorznabRequestExtensions
 
             query.Categories = request.cat != null
                 ? request.cat.Split(',')
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .Select(int.Parse)
+                    .Select(s => int.TryParse(s.Trim(), out var parsed) ? (int?)parsed : null)
+                    .Where(c => c.HasValue)
+                    .Select(c => c!.Value)
                     .ToArray()
                 : query.QueryType?.ToLowerInvariant() switch
                 {
-                    "movie" when !string.IsNullOrWhiteSpace(request.imdbid) => [TorznabCategoryTypes.Movies.Id],
-                    "tvsearch" when !string.IsNullOrWhiteSpace(request.imdbid) => [TorznabCategoryTypes.TV.Id],
-                    "xxx" when !string.IsNullOrWhiteSpace(request.imdbid) => [TorznabCategoryTypes.XXX.Id],
+                    "movie" => [TorznabCategoryTypes.Movies.Id],
+                    "tvsearch" => [TorznabCategoryTypes.TV.Id],
+                    "xxx" => [TorznabCategoryTypes.XXX.Id],
                     _ => []
                 };
 
-
-            if (!string.IsNullOrWhiteSpace(request.season))
-            {
-                query.Season = int.Parse(request.season);
-            }
-
             if (!string.IsNullOrWhiteSpace(request.year))
             {
-                query.Year = int.Parse(request.year);
+                query.Year = Parsing.CoerceInt(request.year);
             }
 
             return query;

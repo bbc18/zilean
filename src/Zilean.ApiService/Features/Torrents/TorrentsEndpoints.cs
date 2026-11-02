@@ -52,13 +52,13 @@ public static class TorrentsEndpoints
             }
 
             var hashes = request.Hashes.Split(',');
-            if (hashes.Length >= configuration.Torrents.MaxHashesToCheck)
+            if (hashes.Length > configuration.Torrents.MaxHashesToCheck)
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 return Results.BadRequest(new ErrorResponse($"Too many hashes provided. The limit is {configuration.Torrents.MaxHashesToCheck}."));
             }
 
-            var hashSet = new HashSet<string>(hashes);
+            var hashSet = new HashSet<string>(hashes, StringComparer.OrdinalIgnoreCase);
 
             var items = await dbContext
                 .Torrents

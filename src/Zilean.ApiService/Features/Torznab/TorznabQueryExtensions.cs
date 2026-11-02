@@ -1,4 +1,4 @@
-﻿namespace Zilean.ApiService.Features.Torznab;
+namespace Zilean.ApiService.Features.Torznab;
 
 public static class TorznabQueryExtensions
 {
@@ -18,7 +18,7 @@ public static class TorznabQueryExtensions
                 throw new NotSupportedException("IMDB ID TV search is not supported by Zilean.");
             }
 
-            if (query.IsTVSearch && !TorznabCapabilities.XxxSearchImdbAvailable)
+            if (query.IsXxxSearch && !TorznabCapabilities.XxxSearchImdbAvailable)
             {
                 logger.LogWarning("IMDB ID Xxx search is not supported.");
                 throw new NotSupportedException("IMDB ID Xxx search is not supported by Zilean.");

@@ -97,6 +97,26 @@ public static class TorznabEndpoints
     {
         ArgumentNullException.ThrowIfNull(query);
 
+        var requestedCategory = GetFromTorznabCategories(query.Categories, query.QueryType);
+
+        // If categories were explicitly requested but none of them match any category Zilean supports,
+        // return an empty result set instead of querying all categories.
+        if (query.Categories is { Length: > 0 } && requestedCategory == null)
+        {
+            bool hasSupportedCategory = query.Categories.Any(catId =>
+                catId == TorznabCategoryTypes.Movies.Id ||
+                TorznabCategoryTypes.Movies.SubCategories.Any(c => c.Id == catId) ||
+                catId == TorznabCategoryTypes.TV.Id ||
+                TorznabCategoryTypes.TV.SubCategories.Any(c => c.Id == catId) ||
+                catId == TorznabCategoryTypes.XXX.Id ||
+                TorznabCategoryTypes.XXX.SubCategories.Any(c => c.Id == catId));
+
+            if (!hasSupportedCategory)
+            {
+                return [];
+            }
+        }
+
         var filter = new TorrentInfoFilter
         {
             Query = query.SearchTerm,
@@ -104,7 +124,7 @@ public static class TorznabEndpoints
             Episode = query.Episode,
             Year = query.Year,
             ImdbId = query.ImdbID,
-            Category = GetFromTorznabCategories(query.Categories, query.QueryType),
+            Category = requestedCategory,
         };
 
         var limit = query.Limit switch
@@ -115,6 +135,17 @@ public static class TorznabEndpoints
         };
 
         var torrentResults = await torrentInfoService.SearchForTorrentInfoFiltered(filter, limit);
+
+        // In-memory category filtering: If categories were specified and multiple categories matched
+        // (so requestedCategory was null, querying all categories from DB),
+        // ensure we only return results matching the requested categories.
+        // This prevents Adult (xxx) content from leaking when a query asks for Movies AND TV (e.g. cat=2000,5000).
+        if (query.Categories is { Length: > 0 })
+        {
+            torrentResults = torrentResults
+                .Where(t => IsCategoryMatch(t.Category, query.Categories))
+                .ToArray();
+        }
 
         var results = torrentResults.Select(t => new ReleaseInfo
         {
@@ -135,6 +166,29 @@ public static class TorznabEndpoints
         };
 
         return results.ToList();
+    }
+
+    private static bool IsCategoryMatch(string? dbCategory, int[] queryCategories)
+    {
+        if (queryCategories.Length == 0)
+        {
+            return true;
+        }
+
+        bool hasMovie = queryCategories.Contains(TorznabCategoryTypes.Movies.Id) ||
+                        TorznabCategoryTypes.Movies.SubCategories.Any(c => queryCategories.Contains(c.Id));
+        bool hasTv = queryCategories.Contains(TorznabCategoryTypes.TV.Id) ||
+                     TorznabCategoryTypes.TV.SubCategories.Any(c => queryCategories.Contains(c.Id));
+        bool hasXxx = queryCategories.Contains(TorznabCategoryTypes.XXX.Id) ||
+                      TorznabCategoryTypes.XXX.SubCategories.Any(c => queryCategories.Contains(c.Id));
+
+        return dbCategory switch
+        {
+            "movie" => hasMovie,
+            "tvSeries" => hasTv,
+            "xxx" => hasXxx,
+            _ => hasMovie
+        };
     }
 
     private static string? GetFromTorznabCategories(int[] queryCategories, string? queryQueryType)

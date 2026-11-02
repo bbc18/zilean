@@ -27,9 +27,6 @@ public class ShellExecutionService(ILogger<ShellExecutionService> logger) : IShe
             var stdOut = Console.OpenStandardOutput();
             var stdErr = Console.OpenStandardError();
 
-            await using var _1 = stdOut.ConfigureAwait(false);
-            await using var _2 = stdErr.ConfigureAwait(false);
-
             await Cli.Wrap(options.Command)
                 .WithWorkingDirectory(executionDirectory)
                 .WithArguments(arguments)

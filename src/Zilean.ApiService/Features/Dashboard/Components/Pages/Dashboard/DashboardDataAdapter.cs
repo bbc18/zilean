@@ -15,27 +15,44 @@ public class DashboardDataAdapter(IServiceProvider serviceProvider, ParseTorrent
                 .OrderByDescending(x => x.IngestedAt)
                 .AsQueryable();
 
+            bool isRegexSearch = false;
             if (dataManagerRequest.Search is { Count: > 0 })
             {
                 var searchTerm = dataManagerRequest.Search[0].Key;
-                if (!string.IsNullOrWhiteSpace(searchTerm) && searchTerm.StartsWith("/") && searchTerm.LastIndexOf('/') > 0)
-                {
-                    int lastSlash = searchTerm.LastIndexOf('/');
-                    string pattern = searchTerm.Substring(1, lastSlash - 1);
-                    string options = searchTerm.Substring(lastSlash + 1);
+                int lastSlash = !string.IsNullOrWhiteSpace(searchTerm) ? searchTerm.LastIndexOf('/') : -1;
+                bool isRegexFormat = !string.IsNullOrWhiteSpace(searchTerm)
+                    && searchTerm.Length > 2
+                    && searchTerm.StartsWith('/')
+                    && lastSlash > 0;
 
-                    var regexOptions = System.Text.RegularExpressions.RegexOptions.None;
-                    if (options.Contains("i", StringComparison.OrdinalIgnoreCase))
+                string? pattern = null;
+                string? options = null;
+
+                if (isRegexFormat)
+                {
+                    pattern = searchTerm.Substring(1, lastSlash - 1);
+                    options = searchTerm.Substring(lastSlash + 1);
+
+                    // Options must consist only of valid regex flags (or be empty). Currently 'i' (case-insensitive) is supported.
+                    // This prevents file paths like "/media/movie/action" from being falsely treated as a regex with options "action".
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(options, "^[iI]*$"))
                     {
-                        regexOptions |= System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+                        isRegexFormat = false;
                     }
+                }
+
+                if (isRegexFormat && !string.IsNullOrEmpty(pattern))
+                {
+                    var regexOptions = options!.Contains("i", StringComparison.OrdinalIgnoreCase)
+                        ? System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                        : System.Text.RegularExpressions.RegexOptions.None;
 
                     try
                     {
                         // Validate regex before applying to query
                         _ = new System.Text.RegularExpressions.Regex(pattern, regexOptions);
 
-                        if (options.Contains("i", StringComparison.OrdinalIgnoreCase))
+                        if (regexOptions.HasFlag(System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                         {
                             dataSource = dataSource.Where(x =>
                                 (x.RawTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.RawTitle, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase)) ||
@@ -49,6 +66,8 @@ public class DashboardDataAdapter(IServiceProvider serviceProvider, ParseTorrent
                                 (x.ParsedTitle != null && System.Text.RegularExpressions.Regex.IsMatch(x.ParsedTitle, pattern, System.Text.RegularExpressions.RegexOptions.None))
                             );
                         }
+
+                        isRegexSearch = true;
                     }
                     catch (ArgumentException)
                     {
@@ -73,21 +92,67 @@ public class DashboardDataAdapter(IServiceProvider serviceProvider, ParseTorrent
                 dataSource = DataOperations.PerformSorting(dataSource, dataManagerRequest.Sorted);
             }
 
-            int count = dataSource.Count();
+            int count;
+            List<DashboardTorrentDetails> results;
 
-            if (dataManagerRequest.Skip != 0)
+            try
             {
-                dataSource = DataOperations.PerformSkip(dataSource, dataManagerRequest.Skip);
-            }
+                count = dataSource.Count();
 
-            if (dataManagerRequest.Take != 0)
+                var pageSource = dataSource;
+                if (dataManagerRequest.Skip != 0)
+                {
+                    pageSource = DataOperations.PerformSkip(pageSource, dataManagerRequest.Skip);
+                }
+
+                if (dataManagerRequest.Take != 0)
+                {
+                    pageSource = DataOperations.PerformTake(pageSource, dataManagerRequest.Take);
+                }
+
+                results = await pageSource
+                    .Select(x => DashboardTorrentDetails.FromTorrentInfo(x))
+                    .ToListAsync();
+            }
+            catch (Exception ex) when (isRegexSearch)
             {
-                dataSource = DataOperations.PerformTake(dataSource, dataManagerRequest.Take);
-            }
+                logger.LogWarning(ex, "Database regex search failed; falling back to standard text search");
 
-            var results = await dataSource
-                .Select(x => DashboardTorrentDetails.FromTorrentInfo(x))
-                .ToListAsync();
+                var fallbackSource = dbContext
+                    .Torrents
+                    .AsNoTracking()
+                    .OrderByDescending(x => x.IngestedAt)
+                    .AsQueryable();
+
+                fallbackSource = DataOperations.PerformSearching(fallbackSource, dataManagerRequest.Search);
+
+                if (dataManagerRequest.Where is { Count: > 0 })
+                {
+                    fallbackSource = DataOperations.PerformFiltering(fallbackSource, dataManagerRequest.Where,
+                        dataManagerRequest.Where[0].Operator);
+                }
+
+                if (dataManagerRequest.Sorted is { Count: > 0 })
+                {
+                    fallbackSource = DataOperations.PerformSorting(fallbackSource, dataManagerRequest.Sorted);
+                }
+
+                count = fallbackSource.Count();
+
+                if (dataManagerRequest.Skip != 0)
+                {
+                    fallbackSource = DataOperations.PerformSkip(fallbackSource, dataManagerRequest.Skip);
+                }
+
+                if (dataManagerRequest.Take != 0)
+                {
+                    fallbackSource = DataOperations.PerformTake(fallbackSource, dataManagerRequest.Take);
+                }
+
+                results = await fallbackSource
+                    .Select(x => DashboardTorrentDetails.FromTorrentInfo(x))
+                    .ToListAsync();
+            }
 
             return !dataManagerRequest.RequiresCounts
                 ? results
